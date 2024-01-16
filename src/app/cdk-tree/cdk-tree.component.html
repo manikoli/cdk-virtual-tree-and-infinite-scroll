@@ -1,0 +1,59 @@
+<cdk-virtual-scroll-viewport itemSize="48" style="height: 200px">
+  <ng-container *cdkVirtualFor="let state of fullDataSource"></ng-container>
+
+  <cdk-tree [dataSource]="dataSource" [treeControl]="treeControl" class="tree">
+    <cdk-tree-node
+      *cdkTreeNodeDef="let node"
+      cdkTreeNodePadding
+      [style.display]="shouldRender(node) ? 'flex' : 'none'"
+      class="example-tree-node"
+    >
+      <button mat-icon-button disabled></button>
+      {{ node.name }}
+    </cdk-tree-node>
+    <cdk-tree-node
+      *cdkTreeNodeDef="let node; when: hasChild"
+      cdkTreeNodePadding
+      [style.display]="shouldRender(node) ? 'flex' : 'none'"
+      class="example-tree-node"
+    >
+      <button
+        mat-icon-button
+        cdkTreeNodeToggle
+        [attr.aria-label]="'Toggle ' + node.name"
+        (click)="node.isExpanded = !node.isExpanded"
+        [style.visibility]="node.expandable ? 'visible' : 'hidden'"
+      >
+        <mat-icon class="mat-icon-rtl-mirror">
+          {{ treeControl.isExpanded(node) ? "expand_more" : "chevron_right" }}
+        </mat-icon>
+      </button>
+      {{ node.name }}
+    </cdk-tree-node>
+  </cdk-tree>
+</cdk-virtual-scroll-viewport>
+
+<!-- <mat-tree
+  [dataSource]="dataSource"
+  [treeControl]="treeControl"
+  class="example-tree"
+  matTreeNodePadding
+  cdk-virtual-scroll-viewport
+>
+  <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding>
+    <button mat-icon-button disabled></button>
+    {{ node.name }}
+  </mat-tree-node>
+
+  <mat-nested-tree-node *matTreeNodeDef="let node; when: hasChild">
+    <button mat-icon-button [attr.aria-label]="'toggle ' + node.name">
+      <mat-icon class="mat-icon-rtl-mirror">
+        {{ treeControl.isExpanded(node) ? "expand_more" : "chevron_right" }}
+      </mat-icon>
+    </button>
+    {{ node.name }}
+    <div [class.example-tree-invisible]="!treeControl.isExpanded(node)">
+      <ng-container matTreeNodeOutlet></ng-container>
+    </div>
+  </mat-nested-tree-node>
+</mat-tree> -->

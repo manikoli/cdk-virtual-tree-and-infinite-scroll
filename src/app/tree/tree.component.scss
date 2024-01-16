@@ -1,0 +1,18 @@
+// mat-tree {
+//     overflow: auto;
+//     background-color: green;
+// }
+
+// mat-tree-node {
+//     overflow: visible !important;
+// }
+
+.example-viewport {
+    height: 300px; /* Set the desired height for your viewport */
+    overflow-y: auto; /* Enable vertical scrolling if necessary */
+  }
+  
+  /* Adjust styles as needed */
+  .example-tree {
+    padding-left: 16px; /* Adjust based on your tree indentation */
+  }

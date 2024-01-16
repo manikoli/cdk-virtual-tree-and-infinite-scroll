@@ -1,0 +1,41 @@
+<cdk-virtual-scroll-viewport
+  itemSize="50"
+  style="height: 300px; background-color: darkcyan"
+>
+  <ng-container *cdkVirtualFor="let item of visibleData"></ng-container>
+  <!-- <div *cdkVirtualFor="let item of dataSource" style="height: 50px">
+    {{ item.name }}
+  </div> -->
+  <cdk-tree [dataSource]="dataSource" [treeControl]="treeControl">
+    <cdk-tree-node
+      *cdkTreeNodeDef="let item"
+      cdkTreeNodePadding
+      matTreeNodePaddingIndent="20"
+      [style.display]="shouldRender(item) ? 'flex' : 'none'"
+      class="example-tree-node"
+    >
+      <button mat-icon-button disabled></button>
+      {{ item.name }}
+    </cdk-tree-node>
+    <cdk-tree-node
+      *cdkTreeNodeDef="let item; when: hasChild"
+      cdkTreeNodePadding
+      matTreeNodePaddingIndent="20"
+      [style.display]="shouldRender(item) ? 'flex' : 'none'"
+      class="example-tree-node"
+    >
+      <button
+        mat-icon-button
+        cdkTreeNodeToggle
+        [attr.aria-label]="'Toggle ' + item.name"
+        (click)="item.isExpanded = !item.isExpanded; updateVisibleItems()"
+        [style.visibility]="item.expandable ? 'visible' : 'hidden'"
+      >
+        <mat-icon class="mat-icon-rtl-mirror">
+          {{ treeControl.isExpanded(item) ? "expand_more" : "chevron_right" }}
+        </mat-icon>
+      </button>
+      {{ item.name }}
+    </cdk-tree-node>
+  </cdk-tree>
+</cdk-virtual-scroll-viewport>
