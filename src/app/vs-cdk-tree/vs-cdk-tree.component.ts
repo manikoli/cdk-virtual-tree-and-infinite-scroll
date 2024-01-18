@@ -1,7 +1,9 @@
-import { Component, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, ViewChild } from '@angular/core';
 import { ArrayDataSource } from '@angular/cdk/collections';
 import { FlatTreeControl, CdkTreeModule } from '@angular/cdk/tree';
 import { CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
+import { TreeService } from '../tree.service';
+import { debounceTime } from 'rxjs';
 
 const TREE_DATA: ExampleFlatNode[] = [
   {
@@ -101,6 +103,7 @@ interface ExampleFlatNode {
   isVisible?: boolean;
   id?: string;
   parentId?: string;
+  numOfChildren?: number;
 }
 
 /**
@@ -123,15 +126,18 @@ export class VsCdkTreeComponent {
 
   @ViewChild(CdkVirtualScrollViewport) virtualScroll!: CdkVirtualScrollViewport;
 
+  constructor(
+    private treeService: TreeService,
+    private cdr: ChangeDetectorRef
+  ) {}
+
   visibleData!: ExampleFlatNode[];
+
   start = 0;
-  end = 10;
+  end!: number;
 
   ngOnInit() {
     for (let i = 0; i < TREE_DATA.length; i++) {
-      if (TREE_DATA[i].level === 0) {
-        TREE_DATA[i].isVisible = true;
-      }
       TREE_DATA[i].id = i.toString();
       if (i - 1 >= 0) {
         TREE_DATA[i].parentId = TREE_DATA[i - 1].expandable
@@ -141,8 +147,12 @@ export class VsCdkTreeComponent {
       if (TREE_DATA[i].level === 0) {
         TREE_DATA[i].parentId = '';
       }
+      if (TREE_DATA[i].expandable) {
+        TREE_DATA[i].numOfChildren = 30;
+      }
     }
 
+    this.calculateMaxNodesNumber();
     this.updateVisibleItems();
   }
 
@@ -174,12 +184,106 @@ export class VsCdkTreeComponent {
     return true;
   }
 
+  getCurrentNumberOfChildren(id: string) {
+    return TREE_DATA.filter((item: ExampleFlatNode) => item.parentId === id)
+      .length;
+  }
+
+  maxNumberOfItems = 0;
+
+  calculateMaxNodesNumber() {
+    let height = screen.height;
+    // 50 BEING FIXED HEIGHT OF NODE
+    this.maxNumberOfItems = height / 50;
+    this.end = this.maxNumberOfItems;
+  }
+
+  addNodes(node: ExampleFlatNode) {
+    if (!node || !node.numOfChildren || !node.id) {
+      return;
+    }
+
+    this.treeService
+      .getElements(node, this.maxNumberOfItems)
+      .pipe(debounceTime(500))
+      .subscribe((res) => {
+        const { numOfChildren, id, level } = node;
+        if (numOfChildren && id) {
+          const currentChildren = this.getCurrentNumberOfChildren(id);
+          if (numOfChildren > currentChildren) {
+            const startPosition = TREE_DATA.findIndex((e) => e.id === id);
+            console.log(numOfChildren, currentChildren);
+
+            const index = TREE_DATA.findIndex(
+              (obj, i) =>
+                i >= startPosition && obj['level'] === level && obj['id'] !== id
+            );
+
+            if (index !== -1) {
+              TREE_DATA.splice(index, 0, ...res);
+            } else {
+              TREE_DATA.push(...res);
+            }
+
+            this.updateVisibleItems();
+
+            console.log(TREE_DATA);
+          }
+        }
+      });
+  }
+
+  ngAfterViewChecked() {
+    this.cdr.detectChanges();
+  }
+
   ngAfterViewInit() {
     this.virtualScroll.renderedRangeStream.subscribe((range) => {
       this.start = range.start;
       this.end = range.end;
+
+      const deepestNode = this.getDeepestScrollingNode();
+      if (deepestNode) {
+        console.log(deepestNode);
+        this.addNodes(deepestNode);
+      }
+
       this.updateVisibleItems();
     });
+  }
+
+  getDeepestScrollingNode(): ExampleFlatNode | undefined {
+    let firstDeepestNode = this.visibleData.reduce((maxObj, currentObj) => {
+      return currentObj.level > maxObj.level ? currentObj : maxObj;
+    }, this.visibleData[0]);
+
+    if (!firstDeepestNode.expandable) {
+      const deepestParent = TREE_DATA.find(
+        (n) => n.id === firstDeepestNode.parentId
+      );
+
+      console.log(deepestParent);
+
+      if (deepestParent && this.treeControl.isExpanded(deepestParent)) {
+        firstDeepestNode = deepestParent;
+      }
+    } else {
+      if (!this.treeControl.isExpanded(firstDeepestNode)) {
+        return undefined;
+      }
+    }
+
+    const currentChildren = TREE_DATA.filter(
+      (n) => n.parentId === firstDeepestNode.id
+    ).length;
+
+    if (firstDeepestNode.numOfChildren) {
+      if (firstDeepestNode.numOfChildren > currentChildren) {
+        return firstDeepestNode;
+      }
+    }
+
+    return undefined;
   }
 
   render() {

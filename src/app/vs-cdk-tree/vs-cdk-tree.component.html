@@ -1,11 +1,8 @@
 <cdk-virtual-scroll-viewport
   itemSize="50"
-  style="height: 300px; background-color: darkcyan"
+  style="height: 100%; background-color: darkcyan"
 >
   <ng-container *cdkVirtualFor="let item of visibleData"></ng-container>
-  <!-- <div *cdkVirtualFor="let item of dataSource" style="height: 50px">
-    {{ item.name }}
-  </div> -->
   <cdk-tree [dataSource]="dataSource" [treeControl]="treeControl">
     <cdk-tree-node
       *cdkTreeNodeDef="let item"
@@ -28,7 +25,11 @@
         mat-icon-button
         cdkTreeNodeToggle
         [attr.aria-label]="'Toggle ' + item.name"
-        (click)="item.isExpanded = !item.isExpanded; updateVisibleItems()"
+        (click)="
+          item.isExpanded = !item.isExpanded;
+          updateVisibleItems();
+          addNodes(item)
+        "
         [style.visibility]="item.expandable ? 'visible' : 'hidden'"
       >
         <mat-icon class="mat-icon-rtl-mirror">
