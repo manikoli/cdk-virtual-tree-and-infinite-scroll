@@ -36,7 +36,8 @@
           {{ treeControl.isExpanded(item) ? "expand_more" : "chevron_right" }}
         </mat-icon>
       </button>
-      {{ item.name }}
+      {{ item.name }} {{ item?.numOfChildren }}
+      {{ getCurrentNumberOfChildren(item?.id) }}
     </cdk-tree-node>
   </cdk-tree>
 </cdk-virtual-scroll-viewport>

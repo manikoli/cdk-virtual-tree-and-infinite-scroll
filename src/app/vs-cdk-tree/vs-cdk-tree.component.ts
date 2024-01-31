@@ -194,43 +194,51 @@ export class VsCdkTreeComponent {
   calculateMaxNodesNumber() {
     let height = screen.height;
     // 50 BEING FIXED HEIGHT OF NODE
-    this.maxNumberOfItems = height / 50;
+    this.maxNumberOfItems = Math.round(height / 50);
     this.end = this.maxNumberOfItems;
   }
+
+  flag = true;
 
   addNodes(node: ExampleFlatNode) {
     if (!node || !node.numOfChildren || !node.id) {
       return;
     }
 
-    this.treeService
-      .getElements(node, this.maxNumberOfItems)
-      .pipe(debounceTime(500))
-      .subscribe((res) => {
-        const { numOfChildren, id, level } = node;
-        if (numOfChildren && id) {
-          const currentChildren = this.getCurrentNumberOfChildren(id);
-          if (numOfChildren > currentChildren) {
-            const startPosition = TREE_DATA.findIndex((e) => e.id === id);
-            console.log(numOfChildren, currentChildren);
+    const { numOfChildren, id, level } = node;
+    const currentChildren = this.getCurrentNumberOfChildren(id);
 
-            const index = TREE_DATA.findIndex(
-              (obj, i) =>
-                i >= startPosition && obj['level'] === level && obj['id'] !== id
-            );
+    let newItems =
+      currentChildren + this.maxNumberOfItems > numOfChildren
+        ? numOfChildren - currentChildren
+        : this.maxNumberOfItems;
 
-            if (index !== -1) {
-              TREE_DATA.splice(index, 0, ...res);
-            } else {
-              TREE_DATA.push(...res);
-            }
+    if (currentChildren === numOfChildren) {
+      this.flag = false;
+    }
 
-            this.updateVisibleItems();
+    if (this.flag) {
+      this.flag = false;
+      this.treeService.getElements(node, newItems).subscribe((res) => {
+        if (numOfChildren > currentChildren) {
+          const startPosition = TREE_DATA.findIndex((e) => e.id === id);
 
-            console.log(TREE_DATA);
+          const index = TREE_DATA.findIndex(
+            (obj, i) =>
+              i >= startPosition && obj['level'] === level && obj['id'] !== id
+          );
+
+          if (index !== -1) {
+            TREE_DATA.splice(index, 0, ...res);
+          } else {
+            TREE_DATA.push(...res);
           }
+
+          this.updateVisibleItems();
+          this.flag = true;
         }
       });
+    }
   }
 
   ngAfterViewChecked() {
@@ -241,10 +249,9 @@ export class VsCdkTreeComponent {
     this.virtualScroll.renderedRangeStream.subscribe((range) => {
       this.start = range.start;
       this.end = range.end;
-
       const deepestNode = this.getDeepestScrollingNode();
+
       if (deepestNode) {
-        console.log(deepestNode);
         this.addNodes(deepestNode);
       }
 
@@ -262,10 +269,9 @@ export class VsCdkTreeComponent {
         (n) => n.id === firstDeepestNode.parentId
       );
 
-      console.log(deepestParent);
-
       if (deepestParent && this.treeControl.isExpanded(deepestParent)) {
         firstDeepestNode = deepestParent;
+        console.log('here?');
       }
     } else {
       if (!this.treeControl.isExpanded(firstDeepestNode)) {
@@ -273,17 +279,7 @@ export class VsCdkTreeComponent {
       }
     }
 
-    const currentChildren = TREE_DATA.filter(
-      (n) => n.parentId === firstDeepestNode.id
-    ).length;
-
-    if (firstDeepestNode.numOfChildren) {
-      if (firstDeepestNode.numOfChildren > currentChildren) {
-        return firstDeepestNode;
-      }
-    }
-
-    return undefined;
+    return firstDeepestNode;
   }
 
   render() {

@@ -12,12 +12,11 @@ import { ScrollingModule } from '@angular/cdk/scrolling';
 import { CdkTreeModule } from '@angular/cdk/tree';
 
 import { CdkTableModule } from '@angular/cdk/table';
-import { VirtualScrollDirective } from './virtual-scroll.directive';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { VsCdkTreeComponent } from './vs-cdk-tree/vs-cdk-tree.component';
 
 @NgModule({
-  declarations: [AppComponent, VirtualScrollDirective, VsCdkTreeComponent],
+  declarations: [AppComponent, VsCdkTreeComponent],
   imports: [
     BrowserModule,
     AppRoutingModule,
