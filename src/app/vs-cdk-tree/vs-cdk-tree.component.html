@@ -2,7 +2,7 @@
   itemSize="50"
   style="height: 100%; background-color: darkcyan"
 >
-  <ng-container *cdkVirtualFor="let item of visibleData"></ng-container>
+  <ng-container *cdkVirtualFor="let item of renderableData"></ng-container>
   <cdk-tree [dataSource]="dataSource" [treeControl]="treeControl">
     <cdk-tree-node
       *cdkTreeNodeDef="let item"
@@ -13,6 +13,9 @@
     >
       <button mat-icon-button disabled></button>
       {{ item.name }}
+      <!-- <div *ngIf="item.id.includes('_load')">
+        {{ item | json }}
+      </div> -->
     </cdk-tree-node>
     <cdk-tree-node
       *cdkTreeNodeDef="let item; when: hasChild"
@@ -36,8 +39,10 @@
           {{ treeControl.isExpanded(item) ? "expand_more" : "chevron_right" }}
         </mat-icon>
       </button>
-      {{ item.name }} {{ item?.numOfChildren }}
-      {{ getCurrentNumberOfChildren(item?.id) }}
+      {{ item.name }}
+      <!-- {{ item.id }} -->
+      <!-- {{ item?.numOfChildren }} -->
+      <!-- {{ getCurrentNumberOfChildren(item?.id) }} -->
     </cdk-tree-node>
   </cdk-tree>
 </cdk-virtual-scroll-viewport>

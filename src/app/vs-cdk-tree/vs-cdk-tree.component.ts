@@ -3,106 +3,41 @@ import { ArrayDataSource } from '@angular/cdk/collections';
 import { FlatTreeControl, CdkTreeModule } from '@angular/cdk/tree';
 import { CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
 import { TreeService } from '../tree.service';
-import { debounceTime } from 'rxjs';
 
-const TREE_DATA: ExampleFlatNode[] = [
+let TREE_DATA: ExampleFlatNode[] = [
   {
+    id: '0',
+    parentId: null,
     name: 'Fruit',
     expandable: true,
     level: 0,
+    page: 1,
+    currentlyLoaded: 0,
+    lastViewedTimestamp: new Date(),
   },
   {
-    name: 'Apple',
-    expandable: false,
-    level: 1,
-  },
-  {
-    name: 'Banana',
-    expandable: false,
-    level: 1,
-  },
-  {
-    name: 'Fruit loops',
-    expandable: false,
-    level: 1,
-  },
-  {
-    name: 'Apple1',
-    expandable: false,
-    level: 1,
-  },
-  {
-    name: 'Banana1',
-    expandable: false,
-    level: 1,
-  },
-  {
-    name: 'Fruit loops1',
-    expandable: false,
-    level: 1,
-  },
-  {
+    id: '1',
+    parentId: null,
     name: 'Vegetables',
     expandable: true,
     level: 0,
-  },
-  {
-    name: 'Green',
-    expandable: true,
-    level: 1,
-    parentId: '0',
-  },
-  {
-    name: 'Broccoli',
-    expandable: false,
-    level: 2,
-  },
-  {
-    name: 'Brussels sprouts',
-    expandable: false,
-    level: 2,
-  },
-  {
-    name: 'Orange',
-    expandable: true,
-    level: 2,
-  },
-  {
-    name: 'Pumpkins',
-    expandable: false,
-    level: 3,
-  },
-  {
-    name: 'Carrots',
-    expandable: false,
-    level: 3,
-  },
-  {
-    name: 'Paradajz',
-    expandable: true,
-    level: 2,
-  },
-  {
-    name: 'Kecap',
-    expandable: false,
-    level: 3,
-  },
-  {
-    name: 'Majonez',
-    expandable: false,
-    level: 3,
+    page: 1,
+    currentlyLoaded: 0,
+    lastViewedTimestamp: new Date(),
   },
 ];
 
 /** Flat node with expandable and level information */
 interface ExampleFlatNode {
+  id: string;
+  parentId: string | null;
   expandable: boolean;
   name: string;
   level: number;
+  page: number;
+  currentlyLoaded: number;
+  lastViewedTimestamp: Date;
   isExpanded?: boolean;
-  isVisible?: boolean;
-  id?: string;
-  parentId?: string;
   numOfChildren?: number;
 }
 
@@ -131,12 +66,39 @@ export class VsCdkTreeComponent {
     private cdr: ChangeDetectorRef
   ) {}
 
+  renderableData!: ExampleFlatNode[];
   visibleData!: ExampleFlatNode[];
 
   start = 0;
   end!: number;
 
+  generateFlatTreeList(size: number): ExampleFlatNode[] {
+    const flatTreeList: ExampleFlatNode[] = [];
+
+    for (let i = 0; i < size; i++) {
+      const node: ExampleFlatNode = {
+        id: `id_${i}`,
+        parentId: i > 0 ? `id_${Math.floor(Math.random() * i)}` : null,
+        expandable: Math.random() > 0.5,
+        name: String(i),
+        level: Math.floor(Math.random() * 10), // Adjust the range as per your requirement
+        page: Math.floor(Math.random() * 100),
+        currentlyLoaded: Math.floor(Math.random() * 100),
+        lastViewedTimestamp: new Date(),
+      };
+
+      flatTreeList.push(node);
+    }
+
+    return flatTreeList;
+  }
+
+  // Generate a large array with 100 elements
+
   ngOnInit() {
+    const largeArray = this.generateFlatTreeList(100);
+    console.log(largeArray);
+
     for (let i = 0; i < TREE_DATA.length; i++) {
       TREE_DATA[i].id = i.toString();
       if (i - 1 >= 0) {
@@ -148,7 +110,8 @@ export class VsCdkTreeComponent {
         TREE_DATA[i].parentId = '';
       }
       if (TREE_DATA[i].expandable) {
-        TREE_DATA[i].numOfChildren = 30;
+        // TREE_DATA[i].numOfChildren = Math.round(Math.random() * 100);
+        TREE_DATA[i].numOfChildren = 100;
       }
     }
 
@@ -156,8 +119,26 @@ export class VsCdkTreeComponent {
     this.updateVisibleItems();
   }
 
+  findOldestViewedGroup(array: ExampleFlatNode[]) {
+    if (array.length === 0) {
+      return null;
+    }
+
+    const oldestNode = array.reduce((oldest, current) => {
+      return current.lastViewedTimestamp < oldest.lastViewedTimestamp &&
+        !current.id.includes('_load') &&
+        !oldest.id.includes('_load')
+        ? current
+        : oldest;
+    }, array[0]);
+
+    return TREE_DATA.filter(
+      (n) => !(n.parentId === oldestNode.id && n.page === oldestNode.page)
+    );
+  }
+
   updateVisibleItems() {
-    this.visibleData = TREE_DATA.filter((item) => this.shouldRender(item));
+    this.renderableData = TREE_DATA.filter((item) => this.shouldRender(item));
     this.render();
   }
 
@@ -206,42 +187,56 @@ export class VsCdkTreeComponent {
     }
 
     const { numOfChildren, id, level } = node;
-    const currentChildren = this.getCurrentNumberOfChildren(id);
+    //This will be 0 because from the very start there will be no preloaded children
+    node.currentlyLoaded =
+      node.currentlyLoaded ?? this.getCurrentNumberOfChildren(id);
 
-    let newItems =
-      currentChildren + this.maxNumberOfItems > numOfChildren
-        ? numOfChildren - currentChildren
+    let size =
+      node.currentlyLoaded + this.maxNumberOfItems > numOfChildren
+        ? numOfChildren - node.currentlyLoaded
         : this.maxNumberOfItems;
 
-    if (currentChildren === numOfChildren) {
-      this.flag = false;
-    }
+    // if (this.flag) {
+    this.flag = false;
+    const startPosition = TREE_DATA.findIndex((e) => e.id === id);
+    if (startPosition !== -1) {
+      this.treeService
+        .getElements(node, size, startPosition)
+        .subscribe((res) => {
+          if (numOfChildren > (node.currentlyLoaded || 0)) {
+            if (node.id?.includes('_load')) {
+              console.log(node);
+              const loadIndex = TREE_DATA.findIndex((n) => n.id === node.id);
+              if (loadIndex !== -1) {
+                TREE_DATA.splice(loadIndex, 1, ...res);
+              }
+            } else {
+              const index = TREE_DATA.findIndex(
+                (obj, i) =>
+                  i >= startPosition &&
+                  obj['level'] === level &&
+                  obj['id'] !== id
+              );
+              if (index !== -1) {
+                TREE_DATA.splice(index, 0, ...res);
+              } else {
+                TREE_DATA.push(...res);
+              }
+            }
 
-    if (this.flag) {
-      this.flag = false;
-      this.treeService.getElements(node, newItems).subscribe((res) => {
-        if (numOfChildren > currentChildren) {
-          const startPosition = TREE_DATA.findIndex((e) => e.id === id);
+            node.currentlyLoaded = size + (node.currentlyLoaded || 0);
 
-          const index = TREE_DATA.findIndex(
-            (obj, i) =>
-              i >= startPosition && obj['level'] === level && obj['id'] !== id
-          );
-
-          if (index !== -1) {
-            TREE_DATA.splice(index, 0, ...res);
-          } else {
-            TREE_DATA.push(...res);
+            this.flag = true;
+            this.updateVisibleItems();
           }
-
-          this.updateVisibleItems();
-          this.flag = true;
-        }
-      });
+        });
     }
+    // }
   }
 
   ngAfterViewChecked() {
+    this.loadMore();
+    console.log(TREE_DATA.length);
     this.cdr.detectChanges();
   }
 
@@ -249,41 +244,124 @@ export class VsCdkTreeComponent {
     this.virtualScroll.renderedRangeStream.subscribe((range) => {
       this.start = range.start;
       this.end = range.end;
-      const deepestNode = this.getDeepestScrollingNode();
-
-      if (deepestNode) {
-        this.addNodes(deepestNode);
-      }
-
-      this.updateVisibleItems();
+      this.loadMore();
+      this.removeOldChunk();
     });
   }
 
-  getDeepestScrollingNode(): ExampleFlatNode | undefined {
-    let firstDeepestNode = this.visibleData.reduce((maxObj, currentObj) => {
-      return currentObj.level > maxObj.level ? currentObj : maxObj;
-    }, this.visibleData[0]);
+  removeOldChunk() {
+    if (TREE_DATA.length > 10000) {
+      const oldestNodes = this.findOldestViewedGroup(TREE_DATA);
+      if (oldestNodes) {
+        const startIndex = TREE_DATA.findIndex(
+          (n) => n.id === oldestNodes[0].id
+        );
+        const endIndex = TREE_DATA.findIndex(
+          (n) => n.id === oldestNodes[oldestNodes.length - 1].id
+        );
 
-    if (!firstDeepestNode.expandable) {
-      const deepestParent = TREE_DATA.find(
-        (n) => n.id === firstDeepestNode.parentId
-      );
+        for (let i = startIndex; i <= endIndex; i++) {
+          TREE_DATA.splice(i, 1);
+        }
 
-      if (deepestParent && this.treeControl.isExpanded(deepestParent)) {
-        firstDeepestNode = deepestParent;
-        console.log('here?');
+        TREE_DATA.splice(indexToAdd, 0, {
+          id:
+            Math.round(Math.random() * 100000).toString() +
+            '_load_' +
+            oldestNode.name,
+          name: 'Load more',
+          expandable: false,
+          level: oldestNode.level + 1,
+          parentId: oldestNode.id,
+          page: pageIndex,
+          lastViewedTimestamp: new Date(),
+          currentlyLoaded: oldestNode.currentlyLoaded,
+          numOfChildren: oldestNode.numOfChildren,
+        });
       }
-    } else {
-      if (!this.treeControl.isExpanded(firstDeepestNode)) {
-        return undefined;
+
+      if (oldestNodes && oldestNode?.expandable) {
+        const pageIndex = TREE_DATA.find(
+          (n) => n.parentId === oldestNode.id
+        )?.page;
+
+        const indexToAdd = TREE_DATA.findIndex(
+          (n) => n.parentId === oldestNode.id && n.page === pageIndex
+        );
+
+        const nodesToRemove = TREE_DATA.filter(
+          (n) => n.parentId === oldestNode.id && n.page === pageIndex
+        );
+
+        if (nodesToRemove) {
+          const startIndex = TREE_DATA.findIndex(
+            (n) => n.id === nodesToRemove[0].id
+          );
+          const endIndex = TREE_DATA.findIndex(
+            (n) => n.id === nodesToRemove[nodesToRemove.length - 1].id
+          );
+
+          for (let i = startIndex; i <= endIndex; i++) {
+            TREE_DATA.splice(i, 1);
+          }
+        }
+
+        TREE_DATA = TREE_DATA.filter(
+          (n) => !(n.parentId === oldestNode.id && n.page === pageIndex)
+        );
+
+        if (oldestNode && oldestNode?.id) {
+          oldestNode.currentlyLoaded = this.getCurrentNumberOfChildren(
+            oldestNode?.id
+          );
+        }
+
+        TREE_DATA.splice(indexToAdd, 0, {
+          id:
+            Math.round(Math.random() * 100000).toString() +
+            '_load_' +
+            oldestNode.name,
+          name: 'Load more',
+          expandable: false,
+          level: oldestNode.level + 1,
+          parentId: oldestNode.id,
+          page: pageIndex,
+          lastViewedTimestamp: new Date(),
+          currentlyLoaded: oldestNode.currentlyLoaded,
+          numOfChildren: oldestNode.numOfChildren,
+        });
+
+        this.updateVisibleItems();
+      } else {
+        if (oldestNode) {
+          TREE_DATA = TREE_DATA.filter(
+            (n) =>
+              !(
+                n.parentId === oldestNode.parentId &&
+                n.page === oldestNode?.page
+              )
+          );
+        }
       }
     }
+  }
 
-    return firstDeepestNode;
+  loadMore() {
+    const loadNodes = this.visibleData.filter((n) => n.id?.includes('_load'));
+
+    loadNodes.forEach((node) => {
+      this.addNodes(node);
+    });
+
+    this.updateVisibleItems();
   }
 
   render() {
-    const a = this.visibleData.slice(this.start, this.end);
-    this.dataSource = new ArrayDataSource(a);
+    this.visibleData = this.renderableData.slice(this.start, this.end);
+    this.visibleData.forEach((node) => {
+      node.lastViewedTimestamp = new Date();
+    });
+
+    this.dataSource = new ArrayDataSource(this.visibleData);
   }
 }
