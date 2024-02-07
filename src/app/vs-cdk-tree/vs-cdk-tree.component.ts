@@ -245,106 +245,106 @@ export class VsCdkTreeComponent {
       this.start = range.start;
       this.end = range.end;
       this.loadMore();
-      this.removeOldChunk();
+      // this.removeOldChunk();
     });
   }
 
-  removeOldChunk() {
-    if (TREE_DATA.length > 10000) {
-      const oldestNodes = this.findOldestViewedGroup(TREE_DATA);
-      if (oldestNodes) {
-        const startIndex = TREE_DATA.findIndex(
-          (n) => n.id === oldestNodes[0].id
-        );
-        const endIndex = TREE_DATA.findIndex(
-          (n) => n.id === oldestNodes[oldestNodes.length - 1].id
-        );
+  // removeOldChunk() {
+  //   if (TREE_DATA.length > 10000) {
+  //     const oldestNodes = this.findOldestViewedGroup(TREE_DATA);
+  //     if (oldestNodes) {
+  //       const startIndex = TREE_DATA.findIndex(
+  //         (n) => n.id === oldestNodes[0].id
+  //       );
+  //       const endIndex = TREE_DATA.findIndex(
+  //         (n) => n.id === oldestNodes[oldestNodes.length - 1].id
+  //       );
 
-        for (let i = startIndex; i <= endIndex; i++) {
-          TREE_DATA.splice(i, 1);
-        }
+  //       for (let i = startIndex; i <= endIndex; i++) {
+  //         TREE_DATA.splice(i, 1);
+  //       }
 
-        TREE_DATA.splice(indexToAdd, 0, {
-          id:
-            Math.round(Math.random() * 100000).toString() +
-            '_load_' +
-            oldestNode.name,
-          name: 'Load more',
-          expandable: false,
-          level: oldestNode.level + 1,
-          parentId: oldestNode.id,
-          page: pageIndex,
-          lastViewedTimestamp: new Date(),
-          currentlyLoaded: oldestNode.currentlyLoaded,
-          numOfChildren: oldestNode.numOfChildren,
-        });
-      }
+  //       TREE_DATA.splice(indexToAdd, 0, {
+  //         id:
+  //           Math.round(Math.random() * 100000).toString() +
+  //           '_load_' +
+  //           oldestNode.name,
+  //         name: 'Load more',
+  //         expandable: false,
+  //         level: oldestNode.level + 1,
+  //         parentId: oldestNode.id,
+  //         page: pageIndex,
+  //         lastViewedTimestamp: new Date(),
+  //         currentlyLoaded: oldestNode.currentlyLoaded,
+  //         numOfChildren: oldestNode.numOfChildren,
+  //       });
+  //     }
 
-      if (oldestNodes && oldestNode?.expandable) {
-        const pageIndex = TREE_DATA.find(
-          (n) => n.parentId === oldestNode.id
-        )?.page;
+  //     if (oldestNodes && oldestNode?.expandable) {
+  //       const pageIndex = TREE_DATA.find(
+  //         (n) => n.parentId === oldestNode.id
+  //       )?.page;
 
-        const indexToAdd = TREE_DATA.findIndex(
-          (n) => n.parentId === oldestNode.id && n.page === pageIndex
-        );
+  //       const indexToAdd = TREE_DATA.findIndex(
+  //         (n) => n.parentId === oldestNode.id && n.page === pageIndex
+  //       );
 
-        const nodesToRemove = TREE_DATA.filter(
-          (n) => n.parentId === oldestNode.id && n.page === pageIndex
-        );
+  //       const nodesToRemove = TREE_DATA.filter(
+  //         (n) => n.parentId === oldestNode.id && n.page === pageIndex
+  //       );
 
-        if (nodesToRemove) {
-          const startIndex = TREE_DATA.findIndex(
-            (n) => n.id === nodesToRemove[0].id
-          );
-          const endIndex = TREE_DATA.findIndex(
-            (n) => n.id === nodesToRemove[nodesToRemove.length - 1].id
-          );
+  //       if (nodesToRemove) {
+  //         const startIndex = TREE_DATA.findIndex(
+  //           (n) => n.id === nodesToRemove[0].id
+  //         );
+  //         const endIndex = TREE_DATA.findIndex(
+  //           (n) => n.id === nodesToRemove[nodesToRemove.length - 1].id
+  //         );
 
-          for (let i = startIndex; i <= endIndex; i++) {
-            TREE_DATA.splice(i, 1);
-          }
-        }
+  //         for (let i = startIndex; i <= endIndex; i++) {
+  //           TREE_DATA.splice(i, 1);
+  //         }
+  //       }
 
-        TREE_DATA = TREE_DATA.filter(
-          (n) => !(n.parentId === oldestNode.id && n.page === pageIndex)
-        );
+  //       TREE_DATA = TREE_DATA.filter(
+  //         (n) => !(n.parentId === oldestNode.id && n.page === pageIndex)
+  //       );
 
-        if (oldestNode && oldestNode?.id) {
-          oldestNode.currentlyLoaded = this.getCurrentNumberOfChildren(
-            oldestNode?.id
-          );
-        }
+  //       if (oldestNode && oldestNode?.id) {
+  //         oldestNode.currentlyLoaded = this.getCurrentNumberOfChildren(
+  //           oldestNode?.id
+  //         );
+  //       }
 
-        TREE_DATA.splice(indexToAdd, 0, {
-          id:
-            Math.round(Math.random() * 100000).toString() +
-            '_load_' +
-            oldestNode.name,
-          name: 'Load more',
-          expandable: false,
-          level: oldestNode.level + 1,
-          parentId: oldestNode.id,
-          page: pageIndex,
-          lastViewedTimestamp: new Date(),
-          currentlyLoaded: oldestNode.currentlyLoaded,
-          numOfChildren: oldestNode.numOfChildren,
-        });
+  //       TREE_DATA.splice(indexToAdd, 0, {
+  //         id:
+  //           Math.round(Math.random() * 100000).toString() +
+  //           '_load_' +
+  //           oldestNode.name,
+  //         name: 'Load more',
+  //         expandable: false,
+  //         level: oldestNode.level + 1,
+  //         parentId: oldestNode.id,
+  //         page: pageIndex,
+  //         lastViewedTimestamp: new Date(),
+  //         currentlyLoaded: oldestNode.currentlyLoaded,
+  //         numOfChildren: oldestNode.numOfChildren,
+  //       });
 
-        this.updateVisibleItems();
-      } else {
-        if (oldestNode) {
-          TREE_DATA = TREE_DATA.filter(
-            (n) =>
-              !(
-                n.parentId === oldestNode.parentId &&
-                n.page === oldestNode?.page
-              )
-          );
-        }
-      }
-    }
-  }
+  //       this.updateVisibleItems();
+  //     } else {
+  //       if (oldestNode) {
+  //         TREE_DATA = TREE_DATA.filter(
+  //           (n) =>
+  //             !(
+  //               n.parentId === oldestNode.parentId &&
+  //               n.page === oldestNode?.page
+  //             )
+  //         );
+  //       }
+  //     }
+  //   }
+  // }
 
   loadMore() {
     const loadNodes = this.visibleData.filter((n) => n.id?.includes('_load'));
